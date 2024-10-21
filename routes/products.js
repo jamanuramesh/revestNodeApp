@@ -8,7 +8,14 @@ router.get('/:id', [ check('id', 'Invalid Id').isInt() ],
     productCtrl.getProductById    
 );
 
-router.post('/',productCtrl.addProduct);
+// router.post('/',productCtrl.addProduct);
+
+router.post('/',[
+    check('name','Invalid Name').isString(),
+    check('description',"Invalid Description").isString(),
+    check('price','Invalid price').isFloat(),
+    check('quantity','Invalid Quantity').isInt()
+],productCtrl.createProduct);
 
 router.put('/:id',[ check('id','Invalid Id').isInt() ],
     productCtrl.updateProduct  

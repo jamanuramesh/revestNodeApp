@@ -34,6 +34,19 @@ const addProduct = (req,res)=>{
     })
 }
 
+const createProduct = async(req,res)=>{
+    const records = req.body;
+    try {
+        await saveMultipleRecords(records);
+        res.status(201).send({status:true,data: 'Product/s saved successfully'});
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({status:false,data: 'Error saving records'});
+    }
+}
+
+
+
 const updateProduct = (req,res)=>{
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -41,12 +54,12 @@ const updateProduct = (req,res)=>{
     }else{
         const id = parseInt(req.params.id);
         const mdate = formatedDates.dateByDMY(new Date());
-        const {name,description,image_url,price,quantity,supplier_id,status} = req.body;
+        const {name,description,image_url,price,quantity} = req.body;
         //check if Product exists or not with id
         pool_db.query(queries.getProductById,[id],(error,result)=>{
             if(error) throw error;
             if(result.rows.length>0){
-                pool_db.query(queries.updateProduct,[name,description,image_url,price,quantity,supplier_id,status,mdate,id],(error,result)=>{
+                pool_db.query(queries.updateProduct,[name,description,image_url,price,quantity,1,mdate,id],(error,result)=>{
                     if(error) throw error;
                     res.status(201).send({status:true,data:"Product Updated successfully"})
                 })
@@ -71,10 +84,27 @@ const deleteProduct = (req,res)=>{
     }
 }
 
+async function saveMultipleRecords(records){
+    const cdate = formatedDates.dateByDMY(new Date())
+    try {
+        await pool_db.query('BEGIN');
+        for (const record of records) {
+            await pool_db.query(queries.addProduct, [record.name,record.description,record.image_url,record.price,record.quantity,1,cdate]);
+        }
+        await pool_db.query('COMMIT'); 
+    } catch (error) {
+        await pool_db.query('ROLLBACK'); 
+        throw error;
+    } finally {
+        //pool_db.end();
+    }
+}
+
 module.exports = {
     getAllProducts,
     getProductById,
     addProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    createProduct
 }

@@ -57,13 +57,23 @@ const getSalesOrderById = (req,res)=>{
     }
 }
 
-const addSalesOrder = (req,res)=>{
+const addSalesOrder = async (req,res)=>{
     const cdate = formatedDates.dateByDMY(new Date());
-    const {fname,lname,email,password,phone} = req.body;
-    pool_db.query(queries.addSalesOrder,[fname,lname,email,password,phone,cdate],(error,result)=>{
-        if(error) throw error;
-        res.status(201).send({status:true,data:"SalesOrder Added successfully"})
-    })
+    // const {fname,lname,email,password,phone} = req.body;
+    // pool_db.query(queries.addSalesOrder,[fname,lname,email,password,phone,cdate],(error,result)=>{
+    //     if(error) throw error;
+    //     res.status(201).send({status:true,data:"SalesOrder Added successfully"})
+    // })
+
+    const jdata = req.body;
+    const records = jdata?.products
+    try {
+        await saveMultipleRecords(records);
+        res.status(201).send({status:true,data: 'Sales Order Placed successfully'});
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({status:false,data: 'Error saving records'});
+    }
 }
 
 const updateSalesOrder = (req,res)=>{
@@ -89,6 +99,7 @@ const updateSalesOrder = (req,res)=>{
     }
 }
 
+
 const deleteSalesOrder = (req,res) =>{
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -99,6 +110,22 @@ const deleteSalesOrder = (req,res) =>{
             if(error) throw error;
             res.status(200).send({status:true,data:"Sales Order deleted successfully"})
         })
+    }
+}
+
+async function saveMultipleRecords(records){
+    const cdate = formatedDates.dateByDMY(new Date())
+    try {
+        await pool_db.query('BEGIN');
+        for (const record of records) {
+            await pool_db.query(queries.addSalesOrder, [1,cdate,1,record.selectedQuantity,'completed','online','admin',cdate,record.pid]);
+        }
+        await pool_db.query('COMMIT'); 
+    } catch (error) {
+        await pool_db.query('ROLLBACK'); 
+        throw error;
+    } finally {
+        //pool_db.end();
     }
 }
 
